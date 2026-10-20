@@ -16,58 +16,16 @@ function App() {
     gender: '',
     course: ''
   })
-
-  // Girls names
-  const girls = [
-    'Nila',
-    'Aadhya',
-    'Diya',
-    'Riya',
-    'Siara',
-    'Krishitha',
-    'Tara',
-    'Meera',
-    'Anvi',
-    'Sana',
-    'Arshu',
-    'Vidhya',
-    'Keerthi',
-    'Dharshana',
-    'Heera',
-    'Yashu'
-  ]
-
-  // Boys names
-  const boys = [
-    'Aadhav',
-    'Kavin',
-    'Rayan',
-    'krishav',
-    'Viyan',
-    'Dharsh',
-    'Arjun',
-    'Dhruv',
-    'Sanjay',
-    'Rithvik',
-    'Aarav',
-    'Nihan',
-    'Vihaan',
-    'Adhi',
-    'Rishi',
-    'Karthik'
-  ]
-
-  // Combine girls and boys names
+  const girls = ['Nila', 'Aadhya', 'Diya', 'Riya', 'Siara', 'Krishitha', 'Tara', 'Meera', 'Anvi', 'Sana', 'Arshu', 'Vidhya', 'Keerthi', 'Dharshana', 'Heera', 'Yashu']
+  const boys = ['Aadhav', 'Kavin', 'Rayan', 'krishav', 'Viyan', 'Dharsh', 'Arjun', 'Dhruv', 'Sanjay', 'Rithvik', 'Aarav', 'Nihan', 'Vihaan', 'Adhi', 'Rishi', 'Karthik']
   const names = [...girls, ...boys]
 
-  // Fetch student details from API
   useEffect(() => {
     fetch('https://dummyjson.com/users?limit=32')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch students')
         }
-
         return response.json()
       })
       .then((data) => {
@@ -88,40 +46,28 @@ function App() {
         setLoading(false)
       })
   }, [])
-
-  // Search students by name
   const filteredUsers = users.filter((user) =>
     user.firstName.toLowerCase().includes(search.toLowerCase())
   )
-
-  // Pagination
   const usersPerPage = 6
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
   const startIndex = (page - 1) * usersPerPage
-
   const currentUsers = filteredUsers.slice(
     startIndex,
     startIndex + usersPerPage
   )
-
-  // Handle search
   function handleSearch(event) {
     setSearch(event.target.value)
     setPage(1)
   }
-
-  // Handle form input
   function handleChange(event) {
     setForm({
       ...form,
       [event.target.name]: event.target.value
     })
   }
-
-  // Handle form submission
   function handleSubmit(event) {
     event.preventDefault()
-
     const newStudent = {
       id: Date.now(),
       firstName: form.name.trim(),
@@ -131,19 +77,13 @@ function App() {
       gender: form.gender,
       course: form.course.trim()
     }
-
-    // Add new student to the existing list
     setUsers((previousUsers) => [...previousUsers, newStudent])
-
-    // Show the updated student list
     setSearch('')
     setPage(1)
 
-    // Success message
     setSuccess('Student added successfully!')
     setError('')
 
-    // Clear the form
     setForm({
       name: '',
       email: '',
@@ -174,41 +114,29 @@ function App() {
           onChange={handleSearch}
           className="search"
         />
-
-        {/* Loading Message */}
         {loading && <p>Loading students...</p>}
 
-        {/* Error Message */}
         {error && <p className="error">{error}</p>}
 
-        {/* Success Message */}
         {!loading && !error && success && (
           <p className="success">{success}</p>
         )}
 
-        {/* No Students Found */}
         {!loading && !error && currentUsers.length === 0 && (
           <p>No students found.</p>
         )}
 
-        {/* Student Cards */}
         <div className="user-list">
           {currentUsers.map((user) => (
             <div className="user-card" key={user.id}>
               <h3>{user.firstName}</h3>
-
               <p>Email: {user.email}</p>
-
               <p>Age: {user.age}</p>
-
               <p>Gender: {user.gender}</p>
-
               <p>Course: {user.course || 'React'}</p>
             </div>
           ))}
         </div>
-
-        {/* Pagination Buttons */}
         {!loading && !error && totalPages > 1 && (
           <div className="pagination">
             <button
@@ -217,11 +145,9 @@ function App() {
             >
               Previous
             </button>
-
             <span>
               Page {page} of {totalPages}
             </span>
-
             <button
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
@@ -231,8 +157,6 @@ function App() {
           </div>
         )}
       </section>
-
-      {/* Add Student Form */}
       <section className="form-section">
         <h2>Add Student Details</h2>
 
@@ -246,50 +170,18 @@ function App() {
             required
           />
 
-          <input
-            type="email"
-            name="email"
-            placeholder="Enter email"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            type="number"
-            name="age"
-            placeholder="Enter age"
-            value={form.age}
-            onChange={handleChange}
-            min="1"
-            required
-          />
-
-          <select
-            name="gender"
-            value={form.gender}
-            onChange={handleChange}
-            required
-          >
+          <input type="email" name="email" placeholder="Enter email" value={form.email} onChange={handleChange} required/>
+          <input type="number" name="age" placeholder="Enter age" value={form.age} onChange={handleChange} min="1" required />
+          <select name="gender" value={form.gender} onChange={handleChange} required>
             <option value="">Select Gender</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>
             <option value="Other">Other</option>
           </select>
-
-          <input
-            type="text"
-            name="course"
-            placeholder="Enter course"
-            value={form.course}
-            onChange={handleChange}
-            required
-          />
-
-          <button type="submit">Submit</button>
+          <input type="text" name="course" placeholder="Enter course" value={form.course} onChange={handleChange} required/>
+         <button type="submit">Submit</button>
         </form>
       </section>
-
     </div>
   )
 }
