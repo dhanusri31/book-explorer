@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  const [users, setUsers] = useState([])
+  const [books, setBooks] = useState([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -10,111 +10,154 @@ function App() {
   const [success, setSuccess] = useState('')
 
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    age: '',
-    gender: '',
-    course: ''
+    title: '',
+    author: '',
+    year: ''
   })
-  const girls = ['Nila', 'Aadhya', 'Diya', 'Riya', 'Siara', 'Krishitha', 'Tara', 'Meera', 'Anvi', 'Sana', 'Arshu', 'Vidhya', 'Keerthi', 'Dharshana', 'Heera', 'Yashu']
-  const boys = ['Aadhav', 'Kavin', 'Rayan', 'krishav', 'Viyan', 'Dharsh', 'Arjun', 'Dhruv', 'Sanjay', 'Rithvik', 'Aarav', 'Nihan', 'Vihaan', 'Adhi', 'Rishi', 'Karthik']
-  const names = [...girls, ...boys]
-
+  const popularBooks = ['Harry Potter and the Philosopher\'s Stone', 'The Alchemist', 'Alice\'s Adventures in Wonderland', 'The Jungle Book', 'The Diary of a Young Girl', 'The Fault in Our Stars']
   useEffect(() => {
-    fetch('https://dummyjson.com/users?limit=32')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch students')
+    async function fetchBooks() {
+      try {
+        const popularResults = await Promise.all(
+          popularBooks.map((title) =>
+            fetch(
+              `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=1`
+            ).then((response) => {
+              if (!response.ok) {
+                throw new Error('Failed to fetch popular books')
+              }
+              return response.json()
+            })
+          )
+        )
+
+        const extraResponse = await fetch(
+          'https://openlibrary.org/search.json?q=best+sellers&limit=24'
+        )
+
+        if (!extraResponse.ok) {
+          throw new Error('Failed to fetch additional books')
         }
-        return response.json()
-      })
-      .then((data) => {
-        const students = data.users.slice(0, 32).map((user, index) => ({
-          ...user,
-          firstName: names[index],
-          lastName: '',
-          gender: index < girls.length ? 'Female' : 'Male',
-          course: 'React'
+
+        const extraData = await extraResponse.json()
+
+        const popularList = popularResults.map((data, index) => {
+          const book = data.docs[0]
+
+          return {
+            id: `popular-${index}`,
+            title: book?.title || popularBooks[index],
+            author: book?.author_name?.[0] || 'Unknown Author',
+            year: book?.first_publish_year || 'Not Available',
+            cover: book?.cover_i
+              ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
+              : ''
+          }
+        })
+
+        const extraBooks = extraData.docs.map((book, index) => ({
+          id: `extra-${index}`,
+          title: book.title || 'Unknown Title',
+          author: book.author_name?.[0] || 'Unknown Author',
+          year: book.first_publish_year || 'Not Available',
+          cover: book.cover_i
+            ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
+            : ''
         }))
 
-        setUsers(students)
-        setSuccess('Students loaded successfully!')
+        const allBooks = [
+          ...popularList,
+          ...extraBooks.filter(
+            (book) =>
+              !popularList.some(
+                (popular) =>
+                  popular.title.toLowerCase() === book.title.toLowerCase()
+              )
+          )
+        ]
+
+        setBooks(allBooks)
+        setSuccess('Books loaded successfully!')
+      } catch {
+        setError('Unable to load books. Please check your internet connection.')
+      } finally {
         setLoading(false)
-      })
-      .catch(() => {
-        setError('Unable to load students. Please try again.')
-        setLoading(false)
-      })
+      }
+    }
+
+    fetchBooks()
   }, [])
-  const filteredUsers = users.filter((user) =>
-    user.firstName.toLowerCase().includes(search.toLowerCase())
+
+  const filteredBooks = books.filter((book) =>
+    book.title.toLowerCase().includes(search.toLowerCase()) ||
+    book.author.toLowerCase().includes(search.toLowerCase())
   )
-  const usersPerPage = 6
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
-  const startIndex = (page - 1) * usersPerPage
-  const currentUsers = filteredUsers.slice(
+
+  const booksPerPage = 6
+  const totalPages = Math.ceil(filteredBooks.length / booksPerPage)
+  const startIndex = (page - 1) * booksPerPage
+
+  const currentBooks = filteredBooks.slice(
     startIndex,
-    startIndex + usersPerPage
+    startIndex + booksPerPage
   )
+
   function handleSearch(event) {
     setSearch(event.target.value)
     setPage(1)
   }
+
   function handleChange(event) {
     setForm({
       ...form,
       [event.target.name]: event.target.value
     })
   }
+
   function handleSubmit(event) {
     event.preventDefault()
-    const newStudent = {
+
+    const newBook = {
       id: Date.now(),
-      firstName: form.name.trim(),
-      lastName: '',
-      email: form.email.trim(),
-      age: Number(form.age),
-      gender: form.gender,
-      course: form.course.trim()
+      title: form.title.trim(),
+      author: form.author.trim(),
+      year: form.year || 'Not Available',
+      cover: ''
     }
-    setUsers((previousUsers) => [...previousUsers, newStudent])
+
+    setBooks((previousBooks) => [...previousBooks, newBook])
     setSearch('')
     setPage(1)
-
-    setSuccess('Student added successfully!')
+    setSuccess('Book added successfully!')
     setError('')
 
     setForm({
-      name: '',
-      email: '',
-      age: '',
-      gender: '',
-      course: ''
+      title: '',
+      author: '',
+      year: ''
     })
   }
 
   return (
     <div className="container">
 
-      {/* Header */}
       <header>
-        <h1>Student Explorer</h1>
-        <p>Explore student details using React and API</p>
+        <h1>Book Explorer</h1>
+        <p>Discover popular books and find your next favourite read</p>
       </header>
 
-      {/* Student Details */}
       <section className="user-section">
-        <h2>Student Details</h2>
+        <h2>Explore Books</h2>
 
-        {/* Search */}
         <input
           type="text"
-          placeholder="Search student name..."
+          placeholder="Search by book title or author..."
           value={search}
           onChange={handleSearch}
           className="search"
         />
-        {loading && <p>Loading students...</p>}
+
+        {loading && <p>Loading books...</p>}
 
         {error && <p className="error">{error}</p>}
 
@@ -122,21 +165,35 @@ function App() {
           <p className="success">{success}</p>
         )}
 
-        {!loading && !error && currentUsers.length === 0 && (
-          <p>No students found.</p>
+        {!loading && !error && currentBooks.length === 0 && (
+          <p>No books found.</p>
         )}
 
         <div className="user-list">
-          {currentUsers.map((user) => (
-            <div className="user-card" key={user.id}>
-              <h3>{user.firstName}</h3>
-              <p>Email: {user.email}</p>
-              <p>Age: {user.age}</p>
-              <p>Gender: {user.gender}</p>
-              <p>Course: {user.course || 'React'}</p>
+          {currentBooks.map((book) => (
+            <div className="user-card" key={book.id}>
+
+              {book.cover ? (
+                <img
+                  src={book.cover}
+                  alt={book.title}
+                  className="book-cover"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className="no-cover"></div>
+              )}
+
+              <h3>{book.title}</h3>
+              <p><strong>Author:</strong> {book.author}</p>
+              <p><strong>Published:</strong> {book.year}</p>
+
             </div>
           ))}
         </div>
+
         {!loading && !error && totalPages > 1 && (
           <div className="pagination">
             <button
@@ -145,9 +202,9 @@ function App() {
             >
               Previous
             </button>
-            <span>
-              Page {page} of {totalPages}
-            </span>
+
+            <span>Page {page} of {totalPages}</span>
+
             <button
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
@@ -157,29 +214,23 @@ function App() {
           </div>
         )}
       </section>
+
       <section className="form-section">
-        <h2>Add Student Details</h2>
+        <h2>Add a New Book</h2>
 
         <form onSubmit={handleSubmit}>
           <input
             type="text"
-            name="name"
-            placeholder="Enter student name"
-            value={form.name}
+            name="title"
+            placeholder="Enter book title"
+            value={form.title}
             onChange={handleChange}
             required
           />
 
-          <input type="email" name="email" placeholder="Enter email" value={form.email} onChange={handleChange} required/>
-          <input type="number" name="age" placeholder="Enter age" value={form.age} onChange={handleChange} min="1" required />
-          <select name="gender" value={form.gender} onChange={handleChange} required>
-            <option value="">Select Gender</option>
-            <option value="Female">Female</option>
-            <option value="Male">Male</option>
-            <option value="Other">Other</option>
-          </select>
-          <input type="text" name="course" placeholder="Enter course" value={form.course} onChange={handleChange} required/>
-         <button type="submit">Submit</button>
+          <input type="text" name="author"  placeholder="Enter author name" value={form.author} onChange={handleChange} required/>
+          <input type="number" name="year" placeholder="Enter published year" min="1" max={new Date().getFullYear()} value={form.year} onChange={handleChange}/>
+          <button type="submit">Add Book</button>
         </form>
       </section>
     </div>
